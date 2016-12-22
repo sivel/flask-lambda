@@ -64,7 +64,7 @@ except:
 
 setup(
     name='flask-lambda',
-    version=find_version('flask-lambda.py'),
+    version=find_version('flask_lambda.py'),
     description=('Python module to make Flask compatible with AWS Lambda for '
                  'creating RESTful applications'),
     long_description=long_description,
