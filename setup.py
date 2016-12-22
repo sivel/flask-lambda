@@ -73,7 +73,7 @@ setup(
     author_email='matt@sivel.net',
     url='https://github.com/sivel/flask-lambda',
     license='Apache License, Version 2.0',
-    packages=find_packages(exclude=['tests', 'tests.*']),
+    py_modules=['flask_lambda'],
     install_requires=requirements,
     classifiers=[
         'Development Status :: 4 - Beta',
