@@ -34,7 +34,7 @@ except ImportError:
 from werkzeug.wrappers import BaseRequest
 
 
-__version__ = '0.0.2'
+__version__ = '0.0.3'
 
 
 def make_environ(event):
@@ -64,7 +64,7 @@ def make_environ(event):
     environ['CONTENT_LENGTH'] = len(event['body']) if event['body'] else ''
 
     environ['wsgi.url_scheme'] = environ['HTTP_X_FORWARDED_PROTO']
-    environ['wsgi.input'] = StringIO(event['body'])
+    environ['wsgi.input'] = StringIO(event['body'] or '')
     environ['wsgi.version'] = (1, 0)
     environ['wsgi.errors'] = sys.stderr
 
