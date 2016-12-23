@@ -40,6 +40,11 @@ Here is an example of what ``my_python_file.py`` would look like::
     if __name__ == '__main__':
         app.run(debug=True)
 
+Flask-RESTful
+-------------
+
+Nothing special here, this module works without issue with Flask-RESTful as well.
+
 API Gateway
 -----------
 

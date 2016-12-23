@@ -34,7 +34,7 @@ except ImportError:
 from werkzeug.wrappers import BaseRequest
 
 
-__version__ = '0.0.3'
+__version__ = '0.0.4'
 
 
 def make_environ(event):
@@ -61,12 +61,17 @@ def make_environ(event):
     environ['SERVER_PORT'] = environ['HTTP_X_FORWARDED_PORT']
     environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
 
-    environ['CONTENT_LENGTH'] = len(event['body']) if event['body'] else ''
+    environ['CONTENT_LENGTH'] = str(
+        len(event['body']) if event['body'] else ''
+    )
 
     environ['wsgi.url_scheme'] = environ['HTTP_X_FORWARDED_PROTO']
     environ['wsgi.input'] = StringIO(event['body'] or '')
     environ['wsgi.version'] = (1, 0)
     environ['wsgi.errors'] = sys.stderr
+    environ['wsgi.multithread'] = False
+    environ['wsgi.run_once'] = True
+    environ['wsgi.multiprocess'] = False
 
     BaseRequest(environ)
 
@@ -77,23 +82,18 @@ class LambdaResponse(object):
     def __init__(self):
         self.status = None
         self.response_headers = None
-        self.exc_info = None
 
     def start_response(self, status, response_headers, exc_info=None):
-        self.status = status
+        self.status = int(status[:3])
         self.response_headers = dict(response_headers)
-        self.exc_info = exc_info
-        return self.write
-
-    def write(self, data):
-        pass
 
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
-            # `context` is `start_response`
+            # `context` is `start_response`, meaning the request didn't
+            # occur via API Gateway and Lambda
             return super(FlaskLambda, self).__call__(event, context)
 
         response = LambdaResponse()
@@ -104,7 +104,7 @@ class FlaskLambda(Flask):
         ))
 
         return {
-            "statusCode": int(response.status.split()[0]),
-            "headers": response.response_headers,
-            "body": body
+            'statusCode': response.status,
+            'headers': response.response_headers,
+            'body': body
         }
