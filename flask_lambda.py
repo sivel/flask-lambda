@@ -91,7 +91,7 @@ class LambdaResponse(object):
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
-        if 'isBase64Encoded' in event and event['isBase64Encoded']:
+        if event.get('isBase64Encoded', False):
             event['body'] = base64.b64decode(event['body'])
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
