@@ -15,6 +15,7 @@
 #    under the License.
 
 import sys
+import base64
 
 try:
     from urllib import urlencode
@@ -90,6 +91,8 @@ class LambdaResponse(object):
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
+        if event['isBase64Encoded']:
+            event['body'] = base64.b64decode(event['body'])
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
             # `context` is `start_response`, meaning the request didn't
