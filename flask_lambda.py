@@ -91,8 +91,6 @@ class LambdaResponse(object):
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
-        if event.get('isBase64Encoded', False):
-            event['body'] = base64.b64decode(event['body'])
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
             # `context` is `start_response`, meaning the request didn't
@@ -100,6 +98,9 @@ class FlaskLambda(Flask):
             return super(FlaskLambda, self).__call__(event, context)
 
         response = LambdaResponse()
+        
+        if event.get('isBase64Encoded', False):
+            event['body'] = base64.b64decode(event['body'])
 
         body = next(self.wsgi_app(
             make_environ(event),
