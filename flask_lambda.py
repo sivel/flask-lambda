@@ -50,6 +50,9 @@ def make_environ(event):
         environ[http_hdr_name] = hdr_value
 
     qs = event['queryStringParameters']
+    environ['HTTP_HOST'] = environ.get('HTTP_HOST') or 'localhost'
+    environ['HTTP_X_FORWARDED_PORT'] = environ.get('HTTP_X_FORWARDED_PORT') or 8888
+    environ['HTTP_X_FORWARDED_PROTO'] = environ.get('HTTP_X_FORWARDED_PROTO') or 8888
 
     environ['REQUEST_METHOD'] = event['httpMethod']
     environ['PATH_INFO'] = event['path']
