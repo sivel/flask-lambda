@@ -15,6 +15,8 @@
 #    under the License.
 
 import sys
+import logging
+import base64
 
 try:
     from urllib import urlencode
@@ -35,12 +37,15 @@ from werkzeug.wrappers import BaseRequest
 
 
 __version__ = '0.0.4'
+logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 
 def make_environ(event):
     environ = {}
+    headers = event['headers'] or {}
 
-    for hdr_name, hdr_value in event['headers'].items():
+    for hdr_name, hdr_value in headers.items():
         hdr_name = hdr_name.replace('-', '_').upper()
         if hdr_name in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
             environ[hdr_name] = hdr_value
@@ -61,17 +66,29 @@ def make_environ(event):
     environ['SERVER_PORT'] = environ['HTTP_X_FORWARDED_PORT']
     environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
 
-    environ['CONTENT_LENGTH'] = str(
-        len(event['body']) if event['body'] else ''
-    )
+    if 'isBase64Encoded' in event and event['isBase64Encoded'] is True:
+        if 'body' in event and event['body'] is not None and 0 < len(event['body']):
+            tmp_body = base64.b64decode(event['body'])
+            environ['CONTENT_LENGTH'] = str(len(tmp_body))
+            environ['wsgi.input'] = StringIO(tmp_body.decode('utf-8'))
+        else:
+            environ['CONTENT_LENGTH'] = '0'
+            environ['wsgi.input'] = StringIO('')
+    else:
+        environ['CONTENT_LENGTH'] = str(
+            len(event['body']) if event['body'] else ''
+        )
+        environ['wsgi.input'] = StringIO(event['body'] or '')
 
     environ['wsgi.url_scheme'] = environ['HTTP_X_FORWARDED_PROTO']
-    environ['wsgi.input'] = StringIO(event['body'] or '')
     environ['wsgi.version'] = (1, 0)
     environ['wsgi.errors'] = sys.stderr
     environ['wsgi.multithread'] = False
     environ['wsgi.run_once'] = True
     environ['wsgi.multiprocess'] = False
+
+    if 'Content-Type' in headers:
+        environ['CONTENT_TYPE'] = headers['Content-Type']
 
     BaseRequest(environ)
 
@@ -84,18 +101,22 @@ class LambdaResponse(object):
         self.response_headers = None
 
     def start_response(self, status, response_headers, exc_info=None):
+        _ = exc_info
         self.status = int(status[:3])
         self.response_headers = dict(response_headers)
 
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
+        global logger
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
             # `context` is `start_response`, meaning the request didn't
             # occur via API Gateway and Lambda
+            logger.info('Calling non-lambda flask app')
             return super(FlaskLambda, self).__call__(event, context)
 
+        logger.info('Calling lambda flask app for following event: ' + str(event))
         response = LambdaResponse()
 
         body = next(self.wsgi_app(
@@ -103,8 +124,13 @@ class FlaskLambda(Flask):
             response.start_response
         ))
 
-        return {
+        logger.info('Response headers: ' + str(response.response_headers))
+
+        ret = {
             'statusCode': response.status,
             'headers': response.response_headers,
-            'body': body
+            'body': base64.b64encode(body).decode('utf-8'),
+            'isBase64Encoded': 'true'
         }
+        logger.info('Response of lambda app: ' + str(ret))
+        return ret
