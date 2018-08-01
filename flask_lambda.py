@@ -17,6 +17,7 @@
 import sys
 import logging
 import base64
+from werkzeug.wrappers import Response
 
 try:
     from urllib import urlencode
@@ -53,6 +54,11 @@ def make_environ(event):
 
         http_hdr_name = 'HTTP_%s' % hdr_name
         environ[http_hdr_name] = hdr_value
+
+    if 'HTTP_X_FORWARDED_PORT' not in environ:
+        environ['HTTP_X_FORWARDED_PORT'] = '443'
+    if 'HTTP_X_FORWARDED_PROTO' not in environ:
+        environ['HTTP_X_FORWARDED_PROTO'] = 'https'
 
     qs = event['queryStringParameters']
 
@@ -117,20 +123,32 @@ class FlaskLambda(Flask):
             return super(FlaskLambda, self).__call__(event, context)
 
         logger.info('Calling lambda flask app for following event: ' + str(event))
-        response = LambdaResponse()
 
-        body = next(self.wsgi_app(
-            make_environ(event),
-            response.start_response
-        ))
+        flask_environment = make_environ(event)
+        body = Response.from_app(self.wsgi_app, flask_environment)
 
-        logger.info('Response headers: ' + str(response.response_headers))
+        if body.data:
+            if body.mimetype.startswith("text/") or body.mimetype.startswith("application/json"):
+                response_body = body.get_data(as_text=True)
+                is_base64_encoded = False
+            else:
+                response_body = base64.b64encode(body.data).decode('utf-8')
+                is_base64_encoded = True
+        else:
+            response_body = ""
+            is_base64_encoded = False
 
         ret = {
-            'statusCode': response.status,
-            'headers': response.response_headers,
-            'body': base64.b64encode(body).decode('utf-8'),
-            'isBase64Encoded': 'true'
+            'statusCode': body.status_code,
+            'headers': {},
+            'body': response_body
         }
+
+        if is_base64_encoded:
+            ret['isBase64Encoded'] = "true"
+
+        for key, value in body.headers:
+            ret['headers'][key] = value
+
         logger.info('Response of lambda app: ' + str(ret))
         return ret
