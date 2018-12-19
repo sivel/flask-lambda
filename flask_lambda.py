@@ -62,7 +62,8 @@ def make_environ(event):
     environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
 
     body = event.get('body', '')
-    body = body.encode('utf-8')
+    if body:
+        body = body.encode('utf-8')
     environ['CONTENT_LENGTH'] = str(
         len(body) if body else ''
     )
