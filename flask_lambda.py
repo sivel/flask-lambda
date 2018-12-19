@@ -69,7 +69,7 @@ def make_environ(event):
     )
 
     environ['wsgi.url_scheme'] = environ['HTTP_X_FORWARDED_PROTO']
-    environ['wsgi.input'] = StringIO(body)
+    environ['wsgi.input'] = StringIO(body or '')
     environ['wsgi.version'] = (1, 0)
     environ['wsgi.errors'] = sys.stderr
     environ['wsgi.multithread'] = False
