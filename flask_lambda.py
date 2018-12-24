@@ -193,6 +193,7 @@ class FlaskLambda(Flask):
             make_environ(event),
             response.start_response
         ))
+        body = smart_text(body)
 
         return {
             'statusCode': response.status,
