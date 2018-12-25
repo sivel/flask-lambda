@@ -191,26 +191,39 @@ class LambdaResponse(object):
         self.response_headers = dict(response_headers)
 
 
+def _call(self, event, context):
+    self.wsgi_app = HealthCheckMiddleware(self.wsgi_app)
+
+    if 'httpMethod' not in event:
+        # In this "context" `event` is `environ` and
+        # `context` is `start_response`, meaning the request didn't
+        # occur via API Gateway and Lambda
+        return self.wsgi_app(event, context)
+
+    response = LambdaResponse()
+
+    body = next(self.wsgi_app(
+        make_environ(event),
+        response.start_response
+    ))
+    body = smart_text(body)
+
+    return {
+        'statusCode': response.status,
+        'headers': response.response_headers,
+        'body': body
+    }
+
+
 class FlaskLambda(Flask):
     def __call__(self, event, context):
-        self.wsgi_app = HealthCheckMiddleware(self.wsgi_app)
+        return _call(self, event, context)
 
-        if 'httpMethod' not in event:
-            # In this "context" `event` is `environ` and
-            # `context` is `start_response`, meaning the request didn't
-            # occur via API Gateway and Lambda
-            return super(FlaskLambda, self).__call__(event, context)
 
-        response = LambdaResponse()
+class LambdaMiddleware(object):
 
-        body = next(self.wsgi_app(
-            make_environ(event),
-            response.start_response
-        ))
-        body = smart_text(body)
+    def __init__(self, app):
+        self.wsgi_app = app
 
-        return {
-            'statusCode': response.status,
-            'headers': response.response_headers,
-            'body': body
-        }
+    def __call__(self, event, context):
+        return _call(self, event, context)
