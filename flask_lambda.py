@@ -34,7 +34,7 @@ except ImportError:
         from io import StringIO
 
 import six
-from werkzeug.wrappers import BaseRequest
+from werkzeug.wrappers import BaseRequest, BaseResponse
 
 
 __version__ = '0.0.4'
@@ -126,6 +126,18 @@ def force_text(s, encoding='utf-8', strings_only=False, errors='strict'):
     return s
 
 
+class HealthCheckMiddleware(object):
+
+    def __init__(self, app):
+        self.app = app
+
+    def __call__(self, environ, start_response):
+        if environ['PATH_INFO'] == '/_health_check':
+            resp = BaseResponse('ok', status=200)
+            return resp(environ, start_response)
+        return self.app(environ, start_response)
+
+
 def make_environ(event):
     environ = {}
 
@@ -179,24 +191,39 @@ class LambdaResponse(object):
         self.response_headers = dict(response_headers)
 
 
+def _call(self, event, context):
+    self.wsgi_app = HealthCheckMiddleware(self.wsgi_app)
+
+    if 'httpMethod' not in event:
+        # In this "context" `event` is `environ` and
+        # `context` is `start_response`, meaning the request didn't
+        # occur via API Gateway and Lambda
+        return self.wsgi_app(event, context)
+
+    response = LambdaResponse()
+
+    body = next(self.wsgi_app(
+        make_environ(event),
+        response.start_response
+    ))
+    body = smart_text(body)
+
+    return {
+        'statusCode': response.status,
+        'headers': response.response_headers,
+        'body': body
+    }
+
+
 class FlaskLambda(Flask):
     def __call__(self, event, context):
-        if 'httpMethod' not in event:
-            # In this "context" `event` is `environ` and
-            # `context` is `start_response`, meaning the request didn't
-            # occur via API Gateway and Lambda
-            return super(FlaskLambda, self).__call__(event, context)
+        return _call(self, event, context)
 
-        response = LambdaResponse()
 
-        body = next(self.wsgi_app(
-            make_environ(event),
-            response.start_response
-        ))
-        body = smart_text(body)
+class LambdaMiddleware(object):
 
-        return {
-            'statusCode': response.status,
-            'headers': response.response_headers,
-            'body': body
-        }
+    def __init__(self, app):
+        self.wsgi_app = app
+
+    def __call__(self, event, context):
+        return _call(self, event, context)
