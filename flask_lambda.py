@@ -38,7 +38,11 @@ __version__ = '0.0.4'
 
 
 def make_environ(event):
-    environ = {}
+    environ = {
+        'HTTP_HOST': '',
+        'HTTP_X_FORWARDED_PORT': '',
+        'HTTP_X_FORWARDED_PROTO': ''
+    }
 
     if event['headers'] is not None:
         for hdr_name, hdr_value in event['headers'].items():
