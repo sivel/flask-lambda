@@ -40,14 +40,15 @@ __version__ = '0.0.4'
 def make_environ(event):
     environ = {}
 
-    for hdr_name, hdr_value in event['headers'].items():
-        hdr_name = hdr_name.replace('-', '_').upper()
-        if hdr_name in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
-            environ[hdr_name] = hdr_value
-            continue
+    if event['headers'] is not None:
+        for hdr_name, hdr_value in event['headers'].items():
+            hdr_name = hdr_name.replace('-', '_').upper()
+            if hdr_name in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
+                environ[hdr_name] = hdr_value
+                continue
 
-        http_hdr_name = 'HTTP_%s' % hdr_name
-        environ[http_hdr_name] = hdr_value
+            http_hdr_name = 'HTTP_%s' % hdr_name
+            environ[http_hdr_name] = hdr_value
 
     qs = event['queryStringParameters']
 
