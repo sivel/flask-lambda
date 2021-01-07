@@ -103,7 +103,7 @@ class FlaskLambda(Flask):
 
         response = LambdaResponse()
 
-        body = next(self.wsgi_app(
+        body = b''.join(self.wsgi_app(
             make_environ(event),
             response.start_response
         ))
