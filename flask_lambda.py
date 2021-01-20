@@ -15,6 +15,7 @@
 #    under the License.
 
 import sys
+import base64
 
 try:
     from urllib import urlencode
@@ -111,5 +112,6 @@ class FlaskLambda(Flask):
         return {
             'statusCode': response.status,
             'headers': response.response_headers,
-            'body': body
+            'body': base64.b64encode(body).decode('utf-8'),
+            'isBase64Encoded': True
         }
