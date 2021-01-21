@@ -109,9 +109,13 @@ class FlaskLambda(Flask):
             response.start_response
         ))
 
+        content_type = response.response_headers['Content-Type']
+        if not content_type or not content_type.startswith('text') or 'json' not in content_type or 'xml' not in content_type:
+            body = base64.b64encode(body).decode('utf-8')
+
         return {
             'statusCode': response.status,
             'headers': response.response_headers,
-            'body': base64.b64encode(body).decode('utf-8'),
+            'body': body,
             'isBase64Encoded': True
         }
