@@ -99,9 +99,6 @@ class FlaskLambda(Flask):
         print('*'*10 + 'Start Event' + '*'*10)
         print(json.dumps(event, indent=2))
         print('*'*10 + 'End Event' + '*'*10)
-        print('*'*10 + 'Start Event' + '*'*10)
-        print(json.dumps(context, indent=2))
-        print('*'*10 + 'End Event' + '*'*10)
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
             # `context` is `start_response`, meaning the request didn't
