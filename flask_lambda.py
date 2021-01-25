@@ -96,9 +96,7 @@ class LambdaResponse(object):
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
-        print('*'*10 + 'Start Event' + '*'*10)
         print(json.dumps(event))
-        print('*'*10 + 'End Event' + '*'*10)
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
             # `context` is `start_response`, meaning the request didn't
@@ -112,8 +110,10 @@ class FlaskLambda(Flask):
             response.start_response
         ))
 
-        return {
+        res = {
             'statusCode': response.status,
             'headers': response.response_headers,
             'body': body
         }
+        print(json.dumps(res))
+        return res
