@@ -15,7 +15,7 @@
 #    under the License.
 
 import sys
-import json
+import base64
 
 try:
     from urllib import urlencode
@@ -96,7 +96,6 @@ class LambdaResponse(object):
 
 class FlaskLambda(Flask):
     def __call__(self, event, context):
-        print(json.dumps(event))
         if 'httpMethod' not in event:
             # In this "context" `event` is `environ` and
             # `context` is `start_response`, meaning the request didn't
@@ -113,6 +112,18 @@ class FlaskLambda(Flask):
         res = {
             'statusCode': response.status,
             'headers': response.response_headers,
-            'body': body
+            'body': body,
+            'isBase64Encoded': False
         }
+
+        content_type = response.response_headers['Content-Type']
+        if 'text' not in content_type \
+                and 'json' not in content_type \
+                and 'xml' not in content_type\
+                and 'javascript' not in content_type\
+                and 'charset=' not in content_type:
+            res['body'] = base64.b64encode(body).decode('utf-8')
+            res['isBase64Encoded'] = True
+
+        print(response.response_headers)
         return res
