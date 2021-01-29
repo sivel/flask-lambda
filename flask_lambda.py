@@ -115,5 +115,4 @@ class FlaskLambda(Flask):
             'headers': response.response_headers,
             'body': body
         }
-        print(json.dumps(res))
         return res
