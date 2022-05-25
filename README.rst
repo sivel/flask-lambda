@@ -13,23 +13,26 @@ Installation
 Usage
 -----
 
-This module works pretty much just like Flask. This allows you to run and develop this applicaiton locally just like you would in Flask.  When ready deploy to Lambda, and configure the handler as::
+This module works pretty much just like Flask. This allows you to run and develop this application locally just like you would in Flask.  When ready deploy to Lambda, and configure the handler as::
 
     my_python_file.app
 
+1)  Keep in mind to set up correctly lambda handler:
+    In this case handler: my_python_file.app
+    This options is available under Runtime settings -> handler
+
 Here is an example of what ``my_python_file.py`` would look like::
 
-    from flask_lambda import FlaskLambda
+    from flask_lambda_rest import FlaskLambdaRest # or FlaskLambdaHttp
 
-    app = FlaskLambda(__name__)
+    app = FlaskLambdaRest(__name__) # FlaskLambdaHttp
 
 
     @app.route('/foo', methods=['GET', 'POST'])
     def foo():
         data = {
             'form': request.form.copy(),
-            'args': request.args.copy(),
-            'json': request.json
+            'args': request.args.copy()
         }
         return (
             json.dumps(data, indent=4, sort_keys=True),
@@ -41,6 +44,7 @@ Here is an example of what ``my_python_file.py`` would look like::
     if __name__ == '__main__':
         app.run(debug=True)
 
+2)  Code above should work if you configure REST Api Gateway -> for HTTP Api Gateway use FlaskLambdaHttp class
 Flask-RESTful
 -------------
 
