@@ -31,7 +31,10 @@ except ImportError:
     except ImportError:
         from io import StringIO
 
-from werkzeug.wrappers import BaseRequest
+try: # werkzeug <= 2.0.3
+    from werkzeug.wrappers import BaseRequest
+except: # werkzeug > 2.1
+    from werkzeug.wrappers import Request as BaseRequest  # issue fixed by joranbeasley
 
 
 __version__ = '0.0.4'
@@ -49,14 +52,15 @@ def make_environ(event):
         http_hdr_name = 'HTTP_%s' % hdr_name
         environ[http_hdr_name] = hdr_value
 
-    qs = event['queryStringParameters']
+    qs = event.get('queryStringParameters', "")
 
-    environ['REQUEST_METHOD'] = event['httpMethod']
-    environ['PATH_INFO'] = event['path']
+    environ['REQUEST_METHOD'] = event['requestContext']['http']['method']
+    environ['PATH_INFO'] = event['rawPath']
     environ['QUERY_STRING'] = urlencode(qs) if qs else ''
-    environ['REMOTE_ADDR'] = event['requestContext']['identity']['sourceIp']
+    environ['REMOTE_ADDR'] = event['requestContext']['http']['sourceIp']
     environ['HOST'] = '%(HTTP_HOST)s:%(HTTP_X_FORWARDED_PORT)s' % environ
     environ['SCRIPT_NAME'] = ''
+    environ['SERVER_NAME'] = 'localhost:5000'
 
     environ['SERVER_PORT'] = environ['HTTP_X_FORWARDED_PORT']
     environ['SERVER_PROTOCOL'] = 'HTTP/1.1'
@@ -88,13 +92,10 @@ class LambdaResponse(object):
         self.response_headers = dict(response_headers)
 
 
-class FlaskLambda(Flask):
+class FlaskLambdaHttp(Flask):
     def __call__(self, event, context):
-        if 'httpMethod' not in event:
-            # In this "context" `event` is `environ` and
-            # `context` is `start_response`, meaning the request didn't
-            # occur via API Gateway and Lambda
-            return super(FlaskLambda, self).__call__(event, context)
+        if not event.get('requestContext', {}).get('http', None):
+            return super(FlaskLambdaHttp, self).__call__(event, context)
 
         response = LambdaResponse()
 
