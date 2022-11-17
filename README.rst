@@ -19,6 +19,8 @@ This module works pretty much just like Flask. This allows you to run and develo
 
 Here is an example of what ``my_python_file.py`` would look like::
 
+    import json
+    from flask import request
     from flask_lambda import FlaskLambda
 
     app = FlaskLambda(__name__)
