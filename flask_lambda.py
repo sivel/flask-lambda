@@ -31,7 +31,10 @@ except ImportError:
     except ImportError:
         from io import StringIO
 
-from werkzeug.wrappers import BaseRequest
+try: # werkzeug <= 2.0.3
+    from werkzeug.wrappers import BaseRequest
+except: # werkzeug > 2.1
+    from werkzeug.wrappers import Request as BaseRequest
 
 
 __version__ = '0.0.4'
