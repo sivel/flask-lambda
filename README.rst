@@ -13,7 +13,7 @@ Installation
 Usage
 -----
 
-This module works pretty much just like Flask. This allows you to run and develop this applicaiton locally just like you would in Flask.  When ready deploy to Lambda, and configure the handler as::
+This module works pretty much just like Flask. This allows you to run and develop this application locally just like you would in Flask. When ready deploy to Lambda, and configure the handler as::
 
     my_python_file.app
 
