@@ -52,6 +52,10 @@ def make_environ(event):
         http_hdr_name = 'HTTP_%s' % hdr_name
         environ[http_hdr_name] = hdr_value
 
+    # Apply defaults for API Gateway private endpoint/lambda proxy integration mode.
+    defaults = {'HTTP_X_FORWARDED_PORT': '443', 'HTTP_X_FORWARDED_PROTO': 'https'}
+    environ = dict(defaults, **environ)
+
     qs = event['queryStringParameters']
 
     environ['REQUEST_METHOD'] = event['httpMethod']
