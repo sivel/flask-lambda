@@ -15,6 +15,7 @@
 #    under the License.
 
 import sys
+import base64
 
 try:
     from urllib import urlencode
@@ -41,16 +42,21 @@ __version__ = '0.0.4'
 
 
 def make_environ(event):
-    environ = {}
+    environ = {
+        'HTTP_HOST': '',
+        'HTTP_X_FORWARDED_PORT': '',
+        'HTTP_X_FORWARDED_PROTO': ''
+    }
 
-    for hdr_name, hdr_value in event['headers'].items():
-        hdr_name = hdr_name.replace('-', '_').upper()
-        if hdr_name in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
-            environ[hdr_name] = hdr_value
-            continue
+    if event['headers'] is not None:
+        for hdr_name, hdr_value in event['headers'].items():
+            hdr_name = hdr_name.replace('-', '_').upper()
+            if hdr_name in ['CONTENT_TYPE', 'CONTENT_LENGTH']:
+                environ[hdr_name] = hdr_value
+                continue
 
-        http_hdr_name = 'HTTP_%s' % hdr_name
-        environ[http_hdr_name] = hdr_value
+            http_hdr_name = 'HTTP_%s' % hdr_name
+            environ[http_hdr_name] = hdr_value
 
     qs = event['queryStringParameters']
 
@@ -101,13 +107,26 @@ class FlaskLambda(Flask):
 
         response = LambdaResponse()
 
-        body = next(self.wsgi_app(
+        body = b''.join(self.wsgi_app(
             make_environ(event),
             response.start_response
         ))
 
-        return {
+        res = {
             'statusCode': response.status,
             'headers': response.response_headers,
-            'body': body
+            'body': body,
+            'isBase64Encoded': False
         }
+
+        content_type = response.response_headers['Content-Type']
+        if 'text' not in content_type \
+                and 'json' not in content_type \
+                and 'xml' not in content_type\
+                and 'javascript' not in content_type\
+                and 'charset=' not in content_type:
+            res['body'] = base64.b64encode(body).decode('utf-8')
+            res['isBase64Encoded'] = True
+
+        print(response.response_headers)
+        return res
