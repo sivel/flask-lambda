@@ -15,6 +15,7 @@
 #    under the License.
 
 import sys
+import json
 
 try:
     from urllib import urlencode
@@ -69,7 +70,7 @@ def make_environ(event):
     )
 
     environ['wsgi.url_scheme'] = environ['HTTP_X_FORWARDED_PROTO']
-    environ['wsgi.input'] = StringIO(event['body'] or '')
+    environ['wsgi.input'] = StringIO(json.dumps(event['body']) or '')
     environ['wsgi.version'] = (1, 0)
     environ['wsgi.errors'] = sys.stderr
     environ['wsgi.multithread'] = False
@@ -109,5 +110,5 @@ class FlaskLambda(Flask):
         return {
             'statusCode': response.status,
             'headers': response.response_headers,
-            'body': body
+            'body': json.loads(body)
         }
